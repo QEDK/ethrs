@@ -1,0 +1,22 @@
+[package]
+name = "ethrs"
+version = "0.1.0"
+edition = "2021"
+authors = ["QEDK <qedk.en@gmail.com>"]
+description = "An opinionated and fast library for interaction with the EVM"
+homepage = "https://github.com/QEDK/ethrs"
+repository = "https://github.com/QEDK/ethrs"
+documentation = "https://docs.rs/ethrs"
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["evm", "web3"]
+categories = ["web-programming", "api-bindings", "cryptography::cryptocurrencies"]
+rust-version = "1.67.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+regex = "1"
+lazy_static = "1.4"
