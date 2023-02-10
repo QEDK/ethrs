@@ -35,7 +35,7 @@ pub struct BlockRPCResponse {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct BlockWithTxResponse {
+pub struct BlockWithTxRPCResponse {
     error: Option<String>,
     result: Option<BlockWithTx>,
 }
@@ -51,9 +51,9 @@ pub struct Block {
     transactionsRoot: String,
     stateRoot: String,
     receiptsRoot: String,
-    miner: String,
+    miner: Option<String>,
     difficulty: String,
-    totalDifficulty: String,
+    totalDifficulty: Option<String>,
     extraData: String,
     size: String,
     gasLimit: String,
@@ -74,9 +74,9 @@ pub struct BlockWithTx {
     transactionsRoot: String,
     stateRoot: String,
     receiptsRoot: String,
-    miner: String,
+    miner: Option<String>,
     difficulty: String,
-    totalDifficulty: String,
+    totalDifficulty: Option<String>,
     extraData: String,
     size: String,
     gasLimit: String,
@@ -313,7 +313,7 @@ impl Provider {
         }
     }
 
-    pub fn get_block_by_hash_with_tx_obj(
+    pub fn get_block_by_hash_with_tx(
         &self,
         block_hash: &str
     ) -> Result<Option<BlockWithTx>, Box<dyn Error>> {
@@ -324,7 +324,7 @@ impl Provider {
                     Ok(_) => (),
                     Err(err) => return Err(err.into()),
                 };
-                let json: BlockWithTxResponse = self
+                let json: BlockWithTxRPCResponse = self
                     .client
                     .post(&self.url)
                     .body(payload.clone())
@@ -338,6 +338,72 @@ impl Provider {
                 }
             }
             false => Err("Invalid block hash".into()),
+        }
+    }
+
+    pub fn get_block_by_number(
+        &self,
+        block_param: Option<DefaultBlockParam>,
+        block_number: Option<u128>,
+    ) -> Result<Option<Block>, Box<dyn Error>> {
+        let mut payload = String::new();
+        payload.push_str("{\"method\":\"eth_getBlockByNumber\",\"params\":[\"");
+        match block_param {
+            Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+            Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
+            Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
+            None => match block_number {
+                Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                None => payload.push_str("latest"),
+            },
+        }
+
+        payload.push_str("\",false],\"id\":1,\"jsonrpc\":\"2.0\"}");
+
+        let json: BlockRPCResponse = self
+            .client
+            .post(&self.url)
+            .body(payload.clone())
+            .headers(self.headers.clone())
+            .send()?
+            .json()?;
+
+        match json.error {
+            Some(err) => Err(err.into()),
+            None => Ok(json.result),
+        }
+    }
+
+    pub fn get_block_by_number_with_tx(
+        &self,
+        block_param: Option<DefaultBlockParam>,
+        block_number: Option<u128>,
+    ) -> Result<Option<BlockWithTx>, Box<dyn Error>> {
+        let mut payload = String::new();
+        payload.push_str("{\"method\":\"eth_getBlockByNumber\",\"params\":[\"");
+        match block_param {
+            Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+            Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
+            Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
+            None => match block_number {
+                Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                None => payload.push_str("latest"),
+            },
+        }
+
+        payload.push_str("\",true],\"id\":1,\"jsonrpc\":\"2.0\"}");
+
+        let json: BlockWithTxRPCResponse = self
+            .client
+            .post(&self.url)
+            .body(payload.clone())
+            .headers(self.headers.clone())
+            .send()?
+            .json()?;
+
+        match json.error {
+            Some(err) => Err(err.into()),
+            None => Ok(json.result),
         }
     }
 }
