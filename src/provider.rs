@@ -5,6 +5,8 @@ use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use serde::Deserialize;
 use std::error::Error;
 use std::string::String;
+use std::fmt::Write;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
@@ -21,13 +23,90 @@ pub enum DefaultBlockParam {
 }
 
 #[derive(Deserialize, Debug)]
-struct RPCResponse {
+pub struct RPCResponse {
     error: Option<String>,
     result: Option<String>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct BlockRPCResponse {
+    error: Option<String>,
+    result: Option<Block>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BlockWithTxResponse {
+    error: Option<String>,
+    result: Option<BlockWithTx>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Block {
+    number: Option<String>,
+    hash: Option<String>,
+    parentHash: String,
+    nonce: Option<String>,
+    sha3Uncles: String,
+    logsBloom: Option<String>,
+    transactionsRoot: String,
+    stateRoot: String,
+    receiptsRoot: String,
+    miner: String,
+    difficulty: String,
+    totalDifficulty: String,
+    extraData: String,
+    size: String,
+    gasLimit: String,
+    gasUsed: String,
+    timestamp: String,
+    transactions: Vec<String>,
+    uncles: Vec<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BlockWithTx {
+    number: Option<String>,
+    hash: Option<String>,
+    parentHash: String,
+    nonce: Option<String>,
+    sha3Uncles: String,
+    logsBloom: Option<String>,
+    transactionsRoot: String,
+    stateRoot: String,
+    receiptsRoot: String,
+    miner: String,
+    difficulty: String,
+    totalDifficulty: String,
+    extraData: String,
+    size: String,
+    gasLimit: String,
+    gasUsed: String,
+    timestamp: String,
+    transactions: Vec<Transaction>,
+    uncles: Vec<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Transaction {
+    blockHash: Option<String>,
+    blockNumber: Option<String>,
+    from: String,
+    gas: String,
+    gasPrice: String,
+    hash: String,
+    input: String,
+    nonce: String,
+    to: Option<String>,
+    transactionIndex: Option<String>,
+    value: String,
+    v: String,
+    r: String,
+    s: String,
+}
+
 lazy_static! {
     static ref ADDRESS_REGEX: Regex = Regex::new(r"0x[0-9A-Fa-f]{0,40}").unwrap();
+    static ref BLOCKHASH_REGEX: Regex = Regex::new(r"0x[0-9A-Fa-f]{0,64}").unwrap();
 }
 
 impl Provider {
@@ -203,6 +282,62 @@ impl Provider {
                 }
             }
             false => Err("Invalid address".into()),
+        }
+    }
+
+    pub fn get_block_by_hash(
+        &self,
+        block_hash: &str
+    ) -> Result<Block, Box<dyn Error>> {
+        match BLOCKHASH_REGEX.is_match(block_hash) {
+            true => {
+                let mut payload = String::new();
+                match write!(payload, "{{\"method\":\"eth_getBlockByHash\",\"params\":[\"{}\",false],\"id\":1,\"jsonrpc\":\"2.0\"}}", block_hash) {
+                    Ok(_) => (),
+                    Err(err) => return Err(err.into()),
+                };
+                let json: BlockRPCResponse = self
+                    .client
+                    .post(&self.url)
+                    .body(payload.clone())
+                    .headers(self.headers.clone())
+                    .send()?
+                    .json()?;
+
+                match json.error {
+                    Some(err) => Err(err.into()),
+                    None => Ok(json.result.unwrap()),
+                }
+            }
+            false => Err("Invalid block hash".into()),
+        }
+    }
+
+    pub fn get_block_by_hash_with_tx_obj(
+        &self,
+        block_hash: &str
+    ) -> Result<BlockWithTx, Box<dyn Error>> {
+        match BLOCKHASH_REGEX.is_match(block_hash) {
+            true => {
+                let mut payload = String::new();
+                match write!(payload, "{{\"method\":\"eth_getBlockByHash\",\"params\":[\"{}\",true],\"id\":1,\"jsonrpc\":\"2.0\"}}", block_hash) {
+                    Ok(_) => (),
+                    Err(err) => return Err(err.into()),
+                };
+                let json: BlockWithTxResponse = self
+                    .client
+                    .post(&self.url)
+                    .body(payload.clone())
+                    .headers(self.headers.clone())
+                    .send()?
+                    .json()?;
+
+                match json.error {
+                    Some(err) => Err(err.into()),
+                    None => Ok(json.result.unwrap()),
+                }
+            }
+            false => Err("Invalid block hash".into()),
         }
     }
 }

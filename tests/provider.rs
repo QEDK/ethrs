@@ -9,7 +9,7 @@ lazy_static! {
 
 #[test]
 fn test_block_number() -> Result<(), Box<dyn Error>> {
-    assert!(PROVIDER.block_number().unwrap() > 2851600);
+    assert!(PROVIDER.block_number().unwrap() > 2875100);
     Ok(())
 }
 
@@ -115,6 +115,13 @@ fn test_get_balance() -> Result<(), Box<dyn Error>> {
             .unwrap()
             > 0
     );
+    Ok(())
+}
+
+#[test]
+fn test_get_block_by_hash() -> Result<(), Box<dyn Error>> {
+    PROVIDER.get_block_by_hash("0x14c2bae040612f036c032f7f0eccf9b3389cd8c30d810df69abdf772f7acf6d8").unwrap();
+    PROVIDER.get_block_by_hash_with_tx_obj("0x33ddfd6eebe80ec8fe2fecfd8fbd7fa7abd5ceb8f53ec11dff1e90312c2828b5").unwrap();
     Ok(())
 }
 
