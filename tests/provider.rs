@@ -120,8 +120,9 @@ fn test_get_balance() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_get_block_by_hash() -> Result<(), Box<dyn Error>> {
-    PROVIDER.get_block_by_hash("0x14c2bae040612f036c032f7f0eccf9b3389cd8c30d810df69abdf772f7acf6d8").unwrap();
-    PROVIDER.get_block_by_hash_with_tx_obj("0x33ddfd6eebe80ec8fe2fecfd8fbd7fa7abd5ceb8f53ec11dff1e90312c2828b5").unwrap();
+    assert!(PROVIDER.get_block_by_hash("0x14c2bae040612f036c032f7f0eccf9b3389cd8c30d810df69abdf772f7acf6d8")?.is_some());
+    assert!(PROVIDER.get_block_by_hash_with_tx_obj("0x33ddfd6eebe80ec8fe2fecfd8fbd7fa7abd5ceb8f53ec11dff1e90312c2828b5")?.is_some());
+    assert!(PROVIDER.get_block_by_hash_with_tx_obj("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")?.is_none());
     Ok(())
 }
 

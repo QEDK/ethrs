@@ -288,7 +288,7 @@ impl Provider {
     pub fn get_block_by_hash(
         &self,
         block_hash: &str
-    ) -> Result<Block, Box<dyn Error>> {
+    ) -> Result<Option<Block>, Box<dyn Error>> {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
                 let mut payload = String::new();
@@ -306,7 +306,7 @@ impl Provider {
 
                 match json.error {
                     Some(err) => Err(err.into()),
-                    None => Ok(json.result.unwrap()),
+                    None => Ok(json.result),
                 }
             }
             false => Err("Invalid block hash".into()),
@@ -316,7 +316,7 @@ impl Provider {
     pub fn get_block_by_hash_with_tx_obj(
         &self,
         block_hash: &str
-    ) -> Result<BlockWithTx, Box<dyn Error>> {
+    ) -> Result<Option<BlockWithTx>, Box<dyn Error>> {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
                 let mut payload = String::new();
@@ -334,7 +334,7 @@ impl Provider {
 
                 match json.error {
                     Some(err) => Err(err.into()),
-                    None => Ok(json.result.unwrap()),
+                    None => Ok(json.result),
                 }
             }
             false => Err("Invalid block hash".into()),
