@@ -3,10 +3,10 @@ use regex::Regex;
 use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use serde::Deserialize;
-use std::error::Error;
-use std::string::String;
-use std::fmt::Write;
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::Write;
+use std::string::String;
 
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
@@ -60,7 +60,7 @@ pub struct Block {
     gasUsed: String,
     timestamp: String,
     transactions: Vec<String>,
-    uncles: Vec<String>
+    uncles: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -83,7 +83,7 @@ pub struct BlockWithTx {
     gasUsed: String,
     timestamp: String,
     transactions: Vec<Transaction>,
-    uncles: Vec<String>
+    uncles: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -285,10 +285,7 @@ impl Provider {
         }
     }
 
-    pub fn get_block_by_hash(
-        &self,
-        block_hash: &str
-    ) -> Result<Option<Block>, Box<dyn Error>> {
+    pub fn get_block_by_hash(&self, block_hash: &str) -> Result<Option<Block>, Box<dyn Error>> {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
                 let mut payload = String::new();
@@ -315,7 +312,7 @@ impl Provider {
 
     pub fn get_block_by_hash_with_tx(
         &self,
-        block_hash: &str
+        block_hash: &str,
     ) -> Result<Option<BlockWithTx>, Box<dyn Error>> {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
