@@ -3,13 +3,13 @@ use primitive_types::U256;
 use regex::Regex;
 use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
-use serde::de::{self, Visitor};
-use serde::Deserialize;
+use serde::de::{self};
 use serde::Deserializer;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
 use std::fmt::Write;
-use std::marker::PhantomData;
+
 use std::string::String;
 
 #[derive(Debug, Clone, Default)]
@@ -50,7 +50,7 @@ pub struct BlockWithTxRPCResponse {
     result: Option<BlockWithTx>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
     #[serde(deserialize_with = "option_string_as_u256")]
@@ -70,17 +70,19 @@ pub struct Block {
     #[serde(deserialize_with = "option_string_as_u256")]
     total_difficulty: Option<U256>,
     extra_data: String,
-    size: String,
+    #[serde(deserialize_with = "string_as_u256")]
+    size: U256,
     #[serde(deserialize_with = "string_as_u256")]
     gas_limit: U256,
     #[serde(deserialize_with = "string_as_u256")]
     gas_used: U256,
-    timestamp: String,
+    #[serde(deserialize_with = "string_as_u256")]
+    timestamp: U256,
     transactions: Vec<String>,
     uncles: Vec<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockWithTx {
     #[serde(deserialize_with = "option_string_as_u256")]
@@ -106,12 +108,13 @@ pub struct BlockWithTx {
     gas_limit: U256,
     #[serde(deserialize_with = "string_as_u256")]
     gas_used: U256,
-    timestamp: String,
+    #[serde(deserialize_with = "string_as_u256")]
+    timestamp: U256,
     transactions: Vec<Transaction>,
     uncles: Vec<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
     block_hash: Option<String>,
@@ -127,7 +130,8 @@ pub struct Transaction {
     #[serde(deserialize_with = "string_as_u256")]
     nonce: U256,
     to: Option<String>,
-    transaction_index: Option<String>,
+    #[serde(deserialize_with = "option_string_as_u256")]
+    transaction_index: Option<U256>,
     #[serde(deserialize_with = "string_as_u256")]
     value: U256,
     v: String,
@@ -266,7 +270,7 @@ impl Provider {
                     Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                     Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                     None => match block_number {
-                        Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                        Some(block) => payload.push_str(&format!("0x{block:x}")),
                         None => payload.push_str("latest"),
                     },
                 }
@@ -314,7 +318,7 @@ impl Provider {
                         Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                         Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                         None => match block_number {
-                            Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                            Some(block) => payload.push_str(&format!("0x{block:x}")),
                             None => payload.push_str("latest"),
                         },
                     }
@@ -356,7 +360,7 @@ impl Provider {
                     Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                     Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                     None => match block_number {
-                        Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                        Some(block) => payload.push_str(&format!("0x{block:x}")),
                         None => payload.push_str("latest"),
                     },
                 }
@@ -397,7 +401,7 @@ impl Provider {
                     Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                     Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                     None => match block_number {
-                        Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                        Some(block) => payload.push_str(&format!("0x{block:x}")),
                         None => payload.push_str("latest"),
                     },
                 }
@@ -428,7 +432,7 @@ impl Provider {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
                 let mut payload = String::new();
-                match write!(payload, "{{\"method\":\"eth_getBlockByHash\",\"params\":[\"{}\",false],\"id\":1,\"jsonrpc\":\"2.0\"}}", block_hash) {
+                match write!(payload, "{{\"method\":\"eth_getBlockByHash\",\"params\":[\"{block_hash}\",false],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
                     Ok(_) => (),
                     Err(err) => return Err(err.into()),
                 };
@@ -457,7 +461,7 @@ impl Provider {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
                 let mut payload = String::new();
-                match write!(payload, "{{\"method\":\"eth_getBlockByHash\",\"params\":[\"{}\",true],\"id\":1,\"jsonrpc\":\"2.0\"}}", block_hash) {
+                match write!(payload, "{{\"method\":\"eth_getBlockByHash\",\"params\":[\"{block_hash}\",true],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
                     Ok(_) => (),
                     Err(err) => return Err(err.into()),
                 };
@@ -490,7 +494,7 @@ impl Provider {
             Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
             Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
             None => match block_number {
-                Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                Some(block) => payload.push_str(&format!("0x{block:x}")),
                 None => payload.push_str("latest"),
             },
         }
@@ -523,7 +527,7 @@ impl Provider {
             Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
             Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
             None => match block_number {
-                Some(block) => payload.push_str(&format!("0x{:x}", block)),
+                Some(block) => payload.push_str(&format!("0x{block:x}")),
                 None => payload.push_str("latest"),
             },
         }
@@ -551,7 +555,7 @@ impl Provider {
         match BLOCKHASH_REGEX.is_match(txhash) {
             true => {
                 let mut payload = String::new();
-                match write!(payload, "{{\"method\":\"eth_getTransactionByHash\",\"params\":[\"{}\"],\"id\":1,\"jsonrpc\":\"2.0\"}}", txhash) {
+                match write!(payload, "{{\"method\":\"eth_getTransactionByHash\",\"params\":[\"{txhash}\"],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
                     Ok(_) => (),
                     Err(err) => return Err(err.into())
                 }

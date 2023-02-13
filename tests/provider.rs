@@ -1,6 +1,6 @@
 use ethrs::provider::DefaultBlockParam;
 use ethrs::provider::Provider;
-use ethrs::provider::Transaction;
+
 use lazy_static::lazy_static;
 use std::error::Error;
 
