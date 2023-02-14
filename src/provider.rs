@@ -1,17 +1,26 @@
+//!The provider module provides all the APIs necessary to interact with EVM JSON-RPC nodes. The most important of which is the `Provider` struct.
+//!See the [implementation](https://docs.rs/ethrs/*/ethrs/provider/struct.Provider.html) documentation for more details.
 use lazy_static::lazy_static;
 use primitive_types::U256;
 use regex::Regex;
 use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use serde::de::{self};
+use serde::Deserialize;
 use serde::Deserializer;
-use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
 use std::fmt::Write;
 
 use std::string::String;
 
+///The `Provider` struct simply contains the RPC url, a `reqwest` client and default headers.
+///## Example
+///```rust
+///use ethrs::provider::Provider;
+///
+///let provider = Provider::new("https://rpc.ankr.com/eth");
+///```
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct Provider {
@@ -26,117 +35,169 @@ pub enum DefaultBlockParam {
     PENDING,
 }
 
+///The `RPCResponse` struct allows for deserialization of generic RPC requests that may either return an error or a single hash as a result.
 #[derive(Deserialize, Debug)]
 pub struct RPCResponse {
     error: Option<String>,
     result: Option<String>,
 }
 
+///The `BlockRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a block as a result.
 #[derive(Deserialize, Debug)]
 pub struct BlockRPCResponse {
     error: Option<String>,
     result: Option<Block>,
 }
 
+///The `TxRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a transaction as a result.
 #[derive(Deserialize, Debug)]
 pub struct TxRPCResponse {
     error: Option<String>,
     result: Option<Transaction>,
 }
 
+///The `BlockWithTxRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a block with transactions as a result.
 #[derive(Deserialize, Debug)]
 pub struct BlockWithTxRPCResponse {
     error: Option<String>,
     result: Option<BlockWithTx>,
 }
 
+///The `Block` struct allows for returning successfully deserialized blocks from JSON-RPC requests.
+///## Example
+///```rust
+///use ethrs::provider::Provider;
+///use std::error::Error;
+///
+///fn main() -> Result<(), Box<dyn Error>> {
+///  let provider = Provider::new("https://rpc.sepolia.org");
+///  assert!(provider
+///    .get_block_by_number(
+///    None, None,
+///    )?
+///    .is_some());
+///    Ok(())
+///}
+///```
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
     #[serde(deserialize_with = "option_string_as_u256")]
-    number: Option<U256>,
-    hash: Option<String>,
-    parent_hash: String,
+    pub number: Option<U256>,
+    pub hash: Option<String>,
+    pub parent_hash: String,
     #[serde(deserialize_with = "option_string_as_u256")]
-    nonce: Option<U256>,
-    sha3_uncles: String,
-    logs_bloom: Option<String>,
-    transactions_root: String,
-    state_root: String,
-    receipts_root: String,
-    miner: Option<String>,
+    pub nonce: Option<U256>,
+    pub sha3_uncles: String,
+    pub logs_bloom: Option<String>,
+    pub transactions_root: String,
+    pub state_root: String,
+    pub receipts_root: String,
+    pub miner: Option<String>,
     #[serde(deserialize_with = "string_as_u256")]
-    difficulty: U256,
+    pub difficulty: U256,
     #[serde(deserialize_with = "option_string_as_u256")]
-    total_difficulty: Option<U256>,
-    extra_data: String,
+    pub total_difficulty: Option<U256>,
+    pub extra_data: String,
     #[serde(deserialize_with = "string_as_u256")]
-    size: U256,
+    pub size: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    gas_limit: U256,
+    pub gas_limit: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    gas_used: U256,
+    pub gas_used: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    timestamp: U256,
-    transactions: Vec<String>,
-    uncles: Vec<String>,
+    pub timestamp: U256,
+    pub transactions: Vec<String>,
+    pub uncles: Vec<String>,
 }
 
+///The `Block` struct allows for returning successfully deserialized blocks with transactions from JSON-RPC requests.
+///## Example
+///```rust
+///use ethrs::provider::Provider;
+///use std::error::Error;
+///
+///fn main() -> Result<(), Box<dyn Error>> {
+///  let provider = Provider::new("https://rpc.sepolia.org");
+///  assert!(provider
+///    .get_block_by_number_with_tx(
+///    None, None,
+///    )?
+///    .is_some());
+///    Ok(())
+///}
+///```
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockWithTx {
     #[serde(deserialize_with = "option_string_as_u256")]
-    number: Option<U256>,
-    hash: Option<String>,
-    parent_hash: String,
+    pub number: Option<U256>,
+    pub hash: Option<String>,
+    pub parent_hash: String,
     #[serde(deserialize_with = "option_string_as_u256")]
-    nonce: Option<U256>,
-    sha3_uncles: String,
-    logs_bloom: Option<String>,
-    transactions_root: String,
-    state_root: String,
-    receipts_root: String,
-    miner: Option<String>,
+    pub nonce: Option<U256>,
+    pub sha3_uncles: String,
+    pub logs_bloom: Option<String>,
+    pub transactions_root: String,
+    pub state_root: String,
+    pub receipts_root: String,
+    pub miner: Option<String>,
     #[serde(deserialize_with = "string_as_u256")]
-    difficulty: U256,
+    pub difficulty: U256,
     #[serde(deserialize_with = "option_string_as_u256")]
-    total_difficulty: Option<U256>,
-    extra_data: String,
+    pub total_difficulty: Option<U256>,
+    pub extra_data: String,
     #[serde(deserialize_with = "string_as_u256")]
-    size: U256,
+    pub size: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    gas_limit: U256,
+    pub gas_limit: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    gas_used: U256,
+    pub gas_used: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    timestamp: U256,
-    transactions: Vec<Transaction>,
-    uncles: Vec<String>,
+    pub timestamp: U256,
+    pub transactions: Vec<Transaction>,
+    pub uncles: Vec<String>,
 }
 
+///The `Transaction` struct allows for returning successfully deserialized transactions from JSON-RPC requests.
+///## Example
+///```rust
+///use ethrs::provider::Provider;
+///use std::error::Error;
+///
+///fn main() -> Result<(), Box<dyn Error>> {
+///  let provider = Provider::new("https://rpc.sepolia.org");
+///  assert!(provider
+///    .get_transaction_by_hash(
+///    "0x6648b858a3d2b716d4c05c5d611844eb9827e2eea5bfc9db7a92187afd4d8c17"
+///    )?
+///    .is_some());
+///    Ok(())
+///}
+///```
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
-    block_hash: Option<String>,
+    pub block_hash: Option<String>,
     #[serde(deserialize_with = "option_string_as_u256")]
-    block_number: Option<U256>,
-    from: String,
+    pub block_number: Option<U256>,
+    pub from: String,
     #[serde(deserialize_with = "string_as_u256")]
-    gas: U256,
+    pub gas: U256,
     #[serde(deserialize_with = "string_as_u256")]
-    gas_price: U256,
-    hash: String,
-    input: String,
+    pub gas_price: U256,
+    pub hash: String,
+    pub input: String,
     #[serde(deserialize_with = "string_as_u256")]
-    nonce: U256,
-    to: Option<String>,
+    pub nonce: U256,
+    pub to: Option<String>,
     #[serde(deserialize_with = "option_string_as_u256")]
-    transaction_index: Option<U256>,
+    pub transaction_index: Option<U256>,
     #[serde(deserialize_with = "string_as_u256")]
-    value: U256,
-    v: String,
-    r: String,
-    s: String,
+    pub value: U256,
+    pub v: String,
+    pub r: String,
+    pub s: String,
 }
 
 fn string_as_u256<'de, D>(deserializer: D) -> Result<U256, D::Error>
@@ -206,7 +267,22 @@ lazy_static! {
     static ref SLOT_REGEX: Regex = Regex::new(r"0x[0-9A-Fa-f]{1,64}").unwrap();
 }
 
+///The `Provider` module requires an HTTP(S) JSON-RPC URL and is responsible for handling all your JSON-RPC requests.
+///## Example
+///```rust
+///use ethrs::provider::Provider;
+///
+///let provider = Provider::new("https://rpc.sepolia.org");
+///```
 impl Provider {
+    ///The `Provider::new()` associated function takes an HTTP(S) JSON-RPC URL and returns a `Provider`
+    ///instance to make your requests.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///
+    ///let provider: Provider = Provider::new("https://rpc.sepolia.org");
+    ///```
     pub fn new(_url: &str) -> Provider {
         let mut headers: HeaderMap = HeaderMap::new();
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
@@ -217,6 +293,21 @@ impl Provider {
         }
     }
 
+    ///The `gas_price()` function attempts to return the current block number as `Ok(u128)`. Returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .block_number()?
+    ///      >= 2900000);
+    ///  Ok(())
+    ///}
+    ///```
     pub fn block_number(&self) -> Result<u128, Box<dyn Error>> {
         let json: RPCResponse = self
             .client
@@ -235,6 +326,21 @@ impl Provider {
         }
     }
 
+    ///The `gas_price()` function attempts to return the current gas price as `Ok(u128)`. Returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .gas_price()?
+    ///      >= 7);
+    ///  Ok(())
+    ///}
+    ///```
     pub fn gas_price(&self) -> Result<u128, Box<dyn Error>> {
         let json: RPCResponse = self
             .client
@@ -253,6 +359,21 @@ impl Provider {
         }
     }
 
+    ///The `get_code()` function takes an address, block param or block number, and attempts to return a deserialized balance as `Ok(u128)`. Returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_balance("0x0000000000000000000000000000000000000000", None, None)? // fetches the latest balance of this address
+    ///      > 0);
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_balance(
         &self,
         address: &str,
@@ -297,6 +418,21 @@ impl Provider {
         }
     }
 
+    ///The `get_storage_at()` function takes an address, slot, block param or block number, and attempts to return a deserialized code hexstring as `Ok(String)`. Returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_storage_at("0x6f14c02fc1f78322cfd7d707ab90f18bad3b54f5", "0x0", None, None)? // fetches the latest code at this address
+    ///      != "0x0");
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_storage_at(
         &self,
         address: &str,
@@ -343,6 +479,21 @@ impl Provider {
         }
     }
 
+    ///The `get_code()` function takes an address, block param or block number, and attempts to return a deserialized string as `Ok(String)`. Returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_code("0x6f14c02fc1f78322cfd7d707ab90f18bad3b54f5", None, None)? // fetches the latest code at this address
+    ///      != "0x0");
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_code(
         &self,
         address: &str,
@@ -384,6 +535,21 @@ impl Provider {
         }
     }
 
+    ///The `get_transaction_count()` function takes an address, block param or block number, and attempts to return a deserialized integer as `Ok(u128)`. Returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_transaction_count("0xec65818ff0f8b071e587a0bbdbecc94de739b6ec", None, None)? // fetches the latest transaction count for this address
+    ///      > 0);
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_transaction_count(
         &self,
         address: &str,
@@ -428,6 +594,21 @@ impl Provider {
         }
     }
 
+    ///The `get_block_by_hash()` function takes a block hash and attempts to return a deserialized block *without transactions* as `Ok(Some(Block))`. If no such block exists, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors. Pending blocks will have some fields serialized as `None` types.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_block_by_hash("0x7caebcb62b8fdd21673bcd7d3737f3e6dc18915e08ef3c868cb42aa78eb95d06")? // fetches the block by hash
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_block_by_hash(&self, block_hash: &str) -> Result<Option<Block>, Box<dyn Error>> {
         match BLOCKHASH_REGEX.is_match(block_hash) {
             true => {
@@ -454,6 +635,21 @@ impl Provider {
         }
     }
 
+    ///The `get_block_by_hash_with_tx()` function takes a block hash and attempts to return a deserialized block *with transactions* as `Ok(Some(BlockWithTx))`. If no such block exists, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors. Pending blocks will have some fields serialized as `None` types.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_block_by_hash_with_tx("0x7caebcb62b8fdd21673bcd7d3737f3e6dc18915e08ef3c868cb42aa78eb95d06")? // fetches the block by hash with txs
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_block_by_hash_with_tx(
         &self,
         block_hash: &str,
@@ -482,6 +678,21 @@ impl Provider {
         }
     }
 
+    ///The `get_block_by_number()` function takes a default block param or block number and attempts to return a deserialized block *without transactions* as `Ok(Some(Block))`. If no such block exists, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors. Pending blocks will have some fields serialized as `None` types.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_block_by_number(None, None)? // fetches the latest block
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_block_by_number(
         &self,
         block_param: Option<DefaultBlockParam>,
@@ -515,6 +726,21 @@ impl Provider {
         }
     }
 
+    ///The `get_block_by_number_with_tx()` function takes a default block param or block number and attempts to return a deserialized block *with transactions* as `Ok(Some(BlockWithTx))`. If no such block exists, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors. Pending blocks will have some fields serialized as `None` types.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_block_by_number_with_tx(None, None)? // fetches the latest block
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_block_by_number_with_tx(
         &self,
         block_param: Option<DefaultBlockParam>,
@@ -548,6 +774,21 @@ impl Provider {
         }
     }
 
+    ///The `get_transaction_by_hash()` function takes a transaction hash attempts to return a deserialized transaction as `Ok(Some(Transaction))`. If no such transaction exists, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors. Pending transactions will have some fields serialized as `None` types.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_transaction_by_hash("0xfb09cfce0695a6843ee3ad5ed4505ca4c8fc0b32f33c1ee12548ba78f0ee52be")?
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn get_transaction_by_hash(
         &self,
         txhash: &str,
@@ -574,6 +815,91 @@ impl Provider {
                 }
             }
             false => Err("Invalid txhash".into()),
+        }
+    }
+
+    ///The `get_transaction_by_block_hash_and_index()` function takes a block hash and transaction index and attempts to return a deserialized transaction as `Ok(Some(Transaction))`. If no such transaction exists on the index, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_transaction_by_block_hash_and_index("0xc49f9290e07575fbcf91a9349721edaff45a6600add9281e48a2948f01c1d8d4", U256::from(1))? // fetches the block by hash and returns the tx at index 1
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
+    pub fn get_transaction_by_block_hash_and_index(
+        &self,
+        block_hash: &str,
+        idx: U256,
+    ) -> Result<Option<Transaction>, Box<dyn Error>> {
+        match BLOCKHASH_REGEX.is_match(block_hash) {
+            true => {
+                let mut payload = String::new();
+                match write!(payload, "{{\"method\":\"eth_getTransactionByBlockHashAndIndex\",\"params\":[\"{block_hash}\",\"0x{idx:x}\"],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
+                    Ok(_) => (),
+                    Err(err) => return Err(err.into())
+                }
+
+                let json: TxRPCResponse = self
+                    .client
+                    .post(&self.url)
+                    .body(payload.clone())
+                    .headers(self.headers.clone())
+                    .send()?
+                    .json()?;
+
+                match json.error {
+                    Some(err) => Err(err.into()),
+                    None => Ok(json.result),
+                }
+            }
+            false => Err("Invalid blockhash".into()),
+        }
+    }
+
+    ///The `get_transaction_by_block_number_and_index()` function takes a block number and transaction index and attempts to return a deserialized transaction as `Ok(Some(Transaction))`. If no such transaction exists on the index, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_transaction_by_block_number_and_index(U256::from(2893800), U256::from(1))? // fetches the block by number and returns the tx at index 1
+    ///      .is_some());
+    ///  Ok(())
+    ///}
+    ///```
+    pub fn get_transaction_by_block_number_and_index(
+        &self,
+        block_number: U256,
+        idx: U256,
+    ) -> Result<Option<Transaction>, Box<dyn Error>> {
+        let mut payload = String::new();
+        match write!(payload, "{{\"method\":\"eth_getTransactionByBlockNumberAndIndex\",\"params\":[\"0x{block_number:x}\",\"0x{idx:x}\"],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
+            Ok(_) => (),
+            Err(err) => return Err(err.into())
+        }
+
+        let json: TxRPCResponse = self
+            .client
+            .post(&self.url)
+            .body(payload.clone())
+            .headers(self.headers.clone())
+            .send()?
+            .json()?;
+
+        match json.error {
+            Some(err) => Err(err.into()),
+            None => Ok(json.result),
         }
     }
 }

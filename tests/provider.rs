@@ -1,5 +1,6 @@
 use ethrs::provider::DefaultBlockParam;
 use ethrs::provider::Provider;
+use ethrs::types::U256;
 
 use lazy_static::lazy_static;
 use std::error::Error;
@@ -10,7 +11,7 @@ lazy_static! {
 
 #[test]
 fn test_block_number() -> Result<(), Box<dyn Error>> {
-    assert!(PROVIDER.block_number().unwrap() > 2875100);
+    assert!(PROVIDER.block_number().unwrap() > 2893700);
     Ok(())
 }
 
@@ -262,6 +263,48 @@ fn test_get_transaction_by_hash() -> Result<(), Box<dyn Error>> {
         .get_transaction_by_hash(
             "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
         )?
+        .is_none());
+    assert!(PROVIDER
+        .get_transaction_by_hash(
+            "0xefdd363eae1829b4e57bd7e19975adfe471b8639b4ffa1b5ce511b7960525b79"
+        )?
+        .is_some());
+    Ok(())
+}
+
+#[test]
+fn test_get_transaction_by_block_hash_and_index() -> Result<(), Box<dyn Error>> {
+    assert!(PROVIDER
+        .get_transaction_by_block_hash_and_index(
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            U256::from(1)
+        )?
+        .is_none());
+    assert!(PROVIDER
+        .get_transaction_by_block_hash_and_index(
+            "0x4938120f0baffd265200d757b6da74e1d80e0a82ff0ed3d7eb3277613ce6f4a4",
+            U256::from(1)
+        )?
+        .is_some());
+    assert!(PROVIDER
+        .get_transaction_by_block_number_and_index(U256::from("0x7FFFFFFFFFFFFFFF"), U256::from(1))?
+        .is_none());
+    Ok(())
+}
+
+#[test]
+fn test_get_transaction_by_block_number_and_index() -> Result<(), Box<dyn Error>> {
+    PROVIDER
+        .get_transaction_by_block_number_and_index(
+            U256::from(PROVIDER.block_number().unwrap()),
+            U256::from(1),
+        )
+        .unwrap(); // some blocks may have no transactions
+    assert!(PROVIDER
+        .get_transaction_by_block_number_and_index(U256::from(2893700), U256::from(1))?
+        .is_some());
+    assert!(PROVIDER
+        .get_transaction_by_block_number_and_index(U256::from("0x7FFFFFFFFFFFFFFF"), U256::from(1))?
         .is_none());
     Ok(())
 }
