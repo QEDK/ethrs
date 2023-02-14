@@ -18,19 +18,18 @@ ethrs = "0.1.1"
 ## 🚀 Quick start
 ```rust
 use ethrs::provider::Provider;
-use ethrs::types::U256;
-use lazy_static::lazy_static;
-use std::error::Error;
-use ethrs::provider::BlockWithTx;
+use ethrs::provider::Block;
 use ethrs::provider::DefaultBlockParam;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let provider = Provider::new("https://rpc.ankr.com/eth");
     // Get the latest block number
-    print!("Latest block number: {}", provider.block_number.unwrap());
+    print!("Latest block number: {}", provider.block_number().unwrap());
     // Or fetch a pending block
-    let pendingBlock: BlockWithTx = provider.get_block_by_number(Some(DefaultBlockParam::PENDING), None);
+    let pending_block: Block = provider.get_block_by_number(Some(DefaultBlockParam::PENDING), None)?.unwrap();
     // More APIs available in the docs!
+    Ok(())
 }
 ```
 
