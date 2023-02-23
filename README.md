@@ -1,6 +1,6 @@
 # ethrs [![Rust CI](https://github.com/QEDK/ethrs/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/QEDK/ethrs/actions/workflows/rust.yml)
 An opinionated and blazing-fast crate for interacting with the EVM ⚡️
-This crate tries to simplify the work involved with serializing and deserializing, mostly choosing to default to `String`, `U256`, and `uint128` types. The choice is intentional and prevents assumptions regarding deserialized data.
+This crate tries to simplify the work involved with serializing and deserializing, mostly choosing to default to `String`, `U256`, and `u128` types. The choice is intentional and prevents assumptions regarding deserialized data.
 
 ⚠️ ***This crate is still in `beta` and will not follow semver until a production release. It is recommended that you pin the crate when using it to ensure that non-backward compatible changes do not affect you.***
 

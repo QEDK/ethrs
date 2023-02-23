@@ -5,13 +5,10 @@ use primitive_types::U256;
 use regex::Regex;
 use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
-use serde::de::{self};
 use serde::Deserialize;
-use serde::Deserializer;
-use std::error::Error;
-use std::fmt;
-use std::fmt::Write;
 
+use std::error::Error;
+use std::fmt::Write;
 use std::string::String;
 
 ///The `Provider` struct simply contains the RPC url, a `reqwest` client and default headers.
@@ -31,6 +28,8 @@ pub struct Provider {
 
 pub enum DefaultBlockParam {
     EARLIEST,
+    FINALIZED,
+    SAFE,
     LATEST,
     PENDING,
 }
@@ -54,6 +53,13 @@ pub struct BlockRPCResponse {
 pub struct TxRPCResponse {
     error: Option<String>,
     result: Option<Transaction>,
+}
+
+///The `TxReceiptRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a transaction receipt as a result.
+#[derive(Deserialize, Debug)]
+pub struct TxReceiptRPCResponse {
+    error: Option<String>,
+    result: Option<TransactionReceipt>,
 }
 
 ///The `BlockWithTxRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a block with transactions as a result.
@@ -82,11 +88,9 @@ pub struct BlockWithTxRPCResponse {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub number: Option<U256>,
     pub hash: Option<String>,
     pub parent_hash: String,
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub nonce: Option<U256>,
     pub sha3_uncles: String,
     pub logs_bloom: Option<String>,
@@ -94,18 +98,12 @@ pub struct Block {
     pub state_root: String,
     pub receipts_root: String,
     pub miner: Option<String>,
-    #[serde(deserialize_with = "string_as_u256")]
     pub difficulty: U256,
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub total_difficulty: Option<U256>,
     pub extra_data: String,
-    #[serde(deserialize_with = "string_as_u256")]
     pub size: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub gas_limit: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub gas_used: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub timestamp: U256,
     pub transactions: Vec<String>,
     pub uncles: Vec<String>,
@@ -130,11 +128,9 @@ pub struct Block {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockWithTx {
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub number: Option<U256>,
     pub hash: Option<String>,
     pub parent_hash: String,
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub nonce: Option<U256>,
     pub sha3_uncles: String,
     pub logs_bloom: Option<String>,
@@ -142,18 +138,12 @@ pub struct BlockWithTx {
     pub state_root: String,
     pub receipts_root: String,
     pub miner: Option<String>,
-    #[serde(deserialize_with = "string_as_u256")]
     pub difficulty: U256,
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub total_difficulty: Option<U256>,
     pub extra_data: String,
-    #[serde(deserialize_with = "string_as_u256")]
     pub size: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub gas_limit: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub gas_used: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub timestamp: U256,
     pub transactions: Vec<Transaction>,
     pub uncles: Vec<String>,
@@ -179,86 +169,52 @@ pub struct BlockWithTx {
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
     pub block_hash: Option<String>,
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub block_number: Option<U256>,
     pub from: String,
-    #[serde(deserialize_with = "string_as_u256")]
     pub gas: U256,
-    #[serde(deserialize_with = "string_as_u256")]
     pub gas_price: U256,
     pub hash: String,
     pub input: String,
-    #[serde(deserialize_with = "string_as_u256")]
     pub nonce: U256,
     pub to: Option<String>,
-    #[serde(deserialize_with = "option_string_as_u256")]
     pub transaction_index: Option<U256>,
-    #[serde(deserialize_with = "string_as_u256")]
     pub value: U256,
     pub v: String,
     pub r: String,
     pub s: String,
 }
 
-fn string_as_u256<'de, D>(deserializer: D) -> Result<U256, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Debug)]
-    struct U256String;
-
-    impl<'de> de::Visitor<'de> for U256String {
-        type Value = U256;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a valid hexstring < 2^256")
-        }
-
-        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            Ok(U256::from_str_radix(&value, 16).unwrap())
-        }
-
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            Ok(U256::from_str_radix(value, 16).unwrap())
-        }
-    }
-
-    deserializer.deserialize_string(U256String)
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionReceipt {
+    pub transaction_hash: String,
+    pub transaction_index: U256,
+    pub block_hash: String,
+    pub block_number: U256,
+    pub from: String,
+    pub to: Option<String>,
+    pub cumulative_gas_used: U256,
+    pub effective_gas_price: U256,
+    pub gas_used: U256,
+    pub contract_address: Option<String>,
+    pub logs: Vec<Log>,
+    pub logs_bloom: String,
+    pub status: Option<U256>,
+    pub root: Option<String>,
 }
 
-fn option_string_as_u256<'de, D>(deserializer: D) -> Result<Option<U256>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Debug)]
-    struct U256OptionString;
-
-    impl<'de> de::Visitor<'de> for U256OptionString {
-        type Value = Option<U256>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a valid option hexstring < 2^256")
-        }
-
-        fn visit_some<D: Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
-            string_as_u256(d).map(Some)
-        }
-
-        fn visit_none<E>(self) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            Ok(None)
-        }
-    }
-
-    deserializer.deserialize_option(U256OptionString)
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Log {
+    pub removed: bool,
+    pub log_index: U256,
+    pub transaction_index: U256,
+    pub transaction_hash: String,
+    pub block_hash: String,
+    pub block_number: U256,
+    pub address: String,
+    pub data: String,
+    pub topics: Vec<String>,
 }
 
 lazy_static! {
@@ -388,6 +344,8 @@ impl Provider {
                 payload.push_str("\",\"");
                 match block_param {
                     Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+                    Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+                    Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
                     Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                     Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                     None => match block_number {
@@ -451,6 +409,8 @@ impl Provider {
                     payload.push_str("\",\"");
                     match block_param {
                         Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+                        Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+                        Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
                         Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                         Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                         None => match block_number {
@@ -508,6 +468,8 @@ impl Provider {
                 payload.push_str("\",\"");
                 match block_param {
                     Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+                    Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+                    Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
                     Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                     Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                     None => match block_number {
@@ -564,6 +526,8 @@ impl Provider {
                 payload.push_str("\",\"");
                 match block_param {
                     Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+                    Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+                    Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
                     Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
                     Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
                     None => match block_number {
@@ -702,6 +666,8 @@ impl Provider {
         payload.push_str("{\"method\":\"eth_getBlockByNumber\",\"params\":[\"");
         match block_param {
             Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+            Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+            Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
             Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
             Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
             None => match block_number {
@@ -750,6 +716,8 @@ impl Provider {
         payload.push_str("{\"method\":\"eth_getBlockByNumber\",\"params\":[\"");
         match block_param {
             Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+            Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+            Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
             Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
             Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
             None => match block_number {
@@ -900,6 +868,49 @@ impl Provider {
         match json.error {
             Some(err) => Err(err.into()),
             None => Ok(json.result),
+        }
+    }
+
+    ///The `get_transaction_receipt()` function takes transaction hash and attempts to return a deserialized transaction receipt as `Ok(Some(TransactionReceipt))`. If no such transaction exists, returns `Ok(None)` and returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_transaction_receipt("0x71d6059608006e73a233978ee092e7a2066b2556bc4a31dfe9be1f23328ce36a")?.is_some());
+    ///  Ok(())
+    ///}
+    ///```
+    pub fn get_transaction_receipt(
+        &self,
+        txhash: &str,
+    ) -> Result<Option<TransactionReceipt>, Box<dyn Error>> {
+        match BLOCKHASH_REGEX.is_match(txhash) {
+            true => {
+                let mut payload = String::new();
+                match write!(payload, "{{\"method\":\"eth_getTransactionReceipt\",\"params\":[\"{txhash}\"],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
+                    Ok(_) => (),
+                    Err(err) => return Err(err.into())
+                }
+
+                let json: TxReceiptRPCResponse = self
+                    .client
+                    .post(&self.url)
+                    .body(payload.clone())
+                    .headers(self.headers.clone())
+                    .send()?
+                    .json()?;
+
+                match json.error {
+                    Some(err) => Err(err.into()),
+                    None => Ok(json.result),
+                }
+            }
+            false => Err("Invalid txhash".into()),
         }
     }
 }

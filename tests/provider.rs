@@ -247,6 +247,16 @@ fn test_get_code() -> Result<(), Box<dyn Error>> {
         PROVIDER
             .get_code(
                 "0x0000000000000000000000000000000000000000",
+                Some(DefaultBlockParam::FINALIZED),
+                None,
+            )
+            .unwrap(),
+        "0x".to_owned()
+    );
+    assert_eq!(
+        PROVIDER
+            .get_code(
+                "0x0000000000000000000000000000000000000000",
                 None,
                 Some(PROVIDER.block_number().unwrap() - 1),
             )
@@ -305,6 +315,21 @@ fn test_get_transaction_by_block_number_and_index() -> Result<(), Box<dyn Error>
         .is_some());
     assert!(PROVIDER
         .get_transaction_by_block_number_and_index(U256::from("0x7FFFFFFFFFFFFFFF"), U256::from(1))?
+        .is_none());
+    Ok(())
+}
+
+#[test]
+fn test_get_transaction_receipt() -> Result<(), Box<dyn Error>> {
+    assert!(PROVIDER
+        .get_transaction_receipt(
+            "0x10e8caafb752c4b611c51dfa784168eebbf1b2819523ea6e8cdf7452552ef6c3"
+        )?
+        .is_some());
+    assert!(PROVIDER
+        .get_transaction_receipt(
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        )?
         .is_none());
     Ok(())
 }

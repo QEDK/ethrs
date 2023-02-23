@@ -6,7 +6,7 @@
 ///use std::error::Error;
 
 ///fn main() -> Result<(), Box<dyn Error>> {
-///    let provider = Provider::new("https://rpc.ankr.com/eth");
+///    let provider = Provider::new("https://rpc.sepolia.org");
 ///    // Get the latest block number
 ///    print!("Latest block number: {}", provider.block_number().unwrap());
 ///    // Or fetch a pending block
