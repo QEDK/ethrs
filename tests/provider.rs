@@ -148,6 +148,26 @@ fn test_get_transaction_count() -> Result<(), Box<dyn Error>> {
 }
 
 #[test]
+fn test_get_block_transaction_count_by_hash() -> Result<(), Box<dyn Error>> {
+    assert!(
+        PROVIDER.get_block_transaction_count_by_hash(
+            "0x6c4925c897c45d377d8fb3ef59df7e0cf97604fc85b909bb806818368fdc6b07"
+        )? == Some(5)
+    );
+    assert!(PROVIDER
+        .get_block_transaction_count_by_hash(
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        )?
+        .is_none());
+    assert!(
+        PROVIDER.get_block_transaction_count_by_hash(
+            "0x68a52ca2491ab61f32d046021654b65859db15bd763a4e09f8ca0e923de707cd"
+        )? == Some(0)
+    );
+    Ok(())
+}
+
+#[test]
 fn test_get_block_by_hash() -> Result<(), Box<dyn Error>> {
     assert!(PROVIDER
         .get_block_by_hash("0x14c2bae040612f036c032f7f0eccf9b3389cd8c30d810df69abdf772f7acf6d8")?

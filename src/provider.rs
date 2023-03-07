@@ -41,6 +41,13 @@ pub struct RPCResponse {
     result: Option<String>,
 }
 
+///The `U256RPCResponse` struct allows for deserialization of generic RPC requests that may either return an error or a single hash as a result.
+#[derive(Deserialize, Debug)]
+pub struct U256RPCResponse {
+    error: Option<String>,
+    result: Option<U256>,
+}
+
 ///The `BlockRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a block as a result.
 #[derive(Deserialize, Debug)]
 pub struct BlockRPCResponse {
@@ -501,7 +508,6 @@ impl Provider {
     ///## Example
     ///```rust
     ///use ethrs::provider::Provider;
-    ///use ethrs::types::U256;
     ///use std::error::Error;
     ///
     ///fn main() -> Result<(), Box<dyn Error>> {
@@ -555,6 +561,55 @@ impl Provider {
                 }
             }
             false => Err("Invalid address".into()),
+        }
+    }
+
+    ///The `get_block_transaction_count_by_hash()` function takes a blockhash and attempts to return a deserialized integer as `Ok(Some(u128))`. Returns a `None` when blockhash is not mined and returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::Provider;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///    assert!(provider
+    ///      .get_block_transaction_count_by_hash("0x6c4925c897c45d377d8fb3ef59df7e0cf97604fc85b909bb806818368fdc6b07")? // fetches the latest transaction count for this address
+    ///      == Some(5));
+    ///  Ok(())
+    ///}
+    ///```
+    pub fn get_block_transaction_count_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> Result<Option<u128>, Box<dyn Error>> {
+        match BLOCKHASH_REGEX.is_match(block_hash) {
+            true => {
+                let mut payload = String::new();
+                payload
+                    .push_str("{\"method\":\"eth_getBlockTransactionCountByHash\",\"params\":[\"");
+                payload.push_str(block_hash);
+                payload.push_str("\"],\"id\":1,\"jsonrpc\":\"2.0\"}");
+
+                let json: RPCResponse = self
+                    .client
+                    .post(&self.url)
+                    .body(payload.clone())
+                    .headers(self.headers.clone())
+                    .send()?
+                    .json()?;
+
+                match json.error {
+                    Some(err) => Err(err.into()),
+                    None => match json.result {
+                        Some(result) => Ok(Some(u128::from_str_radix(
+                            result.strip_prefix("0x").unwrap(),
+                            16,
+                        )?)),
+                        None => Ok(None),
+                    },
+                }
+            }
+            false => Err("Invalid block hash".into()),
         }
     }
 
