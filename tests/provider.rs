@@ -1,4 +1,4 @@
-use ethrs::provider::DefaultBlockParam;
+use ethrs::provider::{TransactionInput, DefaultBlockParam};
 use ethrs::provider::Provider;
 use ethrs::types::U256;
 
@@ -351,5 +351,20 @@ fn test_get_transaction_receipt() -> Result<(), Box<dyn Error>> {
             "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
         )?
         .is_none());
+    Ok(())
+}
+
+#[test]
+fn test_send_transaction() -> Result<(), Box<dyn Error>> {
+    let tx = TransactionInput {
+        from: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_owned(),
+        to: Some("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_owned()),
+        gas: Some(U256::from(21000)),
+        gas_price: Some(U256::from(1)),
+        value: Some(U256::from(1)),
+        data: Some("0xFF".to_owned()),
+        nonce: Some(U256::from(0))
+    };
+    let tx_hash = PROVIDER.send_transaction(tx)?;
     Ok(())
 }

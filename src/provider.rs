@@ -5,11 +5,12 @@ use primitive_types::U256;
 use regex::Regex;
 use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 use std::error::Error;
 use std::fmt::Write;
 use std::string::String;
+use std::collections::HashMap;
 
 ///The `Provider` struct simply contains the RPC url, a `reqwest` client and default headers.
 ///## Example
@@ -37,8 +38,14 @@ pub enum DefaultBlockParam {
 ///The `RPCResponse` struct allows for deserialization of generic RPC requests that may either return an error or a single hash as a result.
 #[derive(Deserialize, Debug)]
 pub struct RPCResponse {
-    error: Option<String>,
+    error: Option<RPCError>,
     result: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RPCError {
+    code: i128,
+    message: String,
 }
 
 ///The `U256RPCResponse` struct allows for deserialization of generic RPC requests that may either return an error or a single hash as a result.
@@ -210,6 +217,29 @@ pub struct TransactionReceipt {
     pub root: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionInput {
+    pub from: String,
+    pub to: Option<String>,
+    pub gas: Option<U256>,
+    pub gas_price: Option<U256>,
+    pub value: Option<U256>,
+    pub data: Option<String>,
+    pub nonce: Option<U256>
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallInput {
+    pub from: Option<String>,
+    pub to: String,
+    pub gas: Option<U256>,
+    pub gas_price: Option<U256>,
+    pub value: Option<U256>,
+    pub data: Option<String>
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Log {
@@ -281,7 +311,7 @@ impl Provider {
             .json()?;
 
         match json.error {
-            Some(err) => Err(err.into()),
+            Some(err) => Err(err.message.into()),
             None => Ok(u128::from_str_radix(
                 json.result.unwrap().strip_prefix("0x").unwrap(),
                 16,
@@ -314,7 +344,7 @@ impl Provider {
             .json()?;
 
         match json.error {
-            Some(err) => Err(err.into()),
+            Some(err) => Err(err.message.into()),
             None => Ok(u128::from_str_radix(
                 json.result.unwrap().strip_prefix("0x").unwrap(),
                 16,
@@ -372,7 +402,7 @@ impl Provider {
                     .json()?;
 
                 match json.error {
-                    Some(err) => Err(err.into()),
+                    Some(err) => Err(err.message.into()),
                     None => Ok(u128::from_str_radix(
                         json.result.unwrap().strip_prefix("0x").unwrap(),
                         16,
@@ -436,7 +466,7 @@ impl Provider {
                         .json()?;
 
                     match json.error {
-                        Some(err) => Err(err.into()),
+                        Some(err) => Err(err.message.into()),
                         None => Ok(json.result.unwrap()),
                     }
                 }
@@ -496,7 +526,7 @@ impl Provider {
                     .json()?;
 
                 match json.error {
-                    Some(err) => Err(err.into()),
+                    Some(err) => Err(err.message.into()),
                     None => Ok(json.result.unwrap()),
                 }
             }
@@ -553,7 +583,7 @@ impl Provider {
                     .json()?;
 
                 match json.error {
-                    Some(err) => Err(err.into()),
+                    Some(err) => Err(err.message.into()),
                     None => Ok(u128::from_str_radix(
                         json.result.unwrap().strip_prefix("0x").unwrap(),
                         16,
@@ -599,7 +629,7 @@ impl Provider {
                     .json()?;
 
                 match json.error {
-                    Some(err) => Err(err.into()),
+                    Some(err) => Err(err.message.into()),
                     None => match json.result {
                         Some(result) => Ok(Some(u128::from_str_radix(
                             result.strip_prefix("0x").unwrap(),
@@ -966,6 +996,33 @@ impl Provider {
                 }
             }
             false => Err("Invalid txhash".into()),
+        }
+    }
+
+    pub fn send_transaction(&self, tx: TransactionInput) -> Result<String, Box<dyn Error>> {
+        let mut payload = String::new();
+
+        let tx_json = serde_json::to_string(&tx)?;
+
+        match write!(payload, "{{\"method\":\"eth_sendTransaction\",\"params\":[{tx_json}],\"id\":1,\"jsonrpc\":\"2.0\"}}") {
+            Ok(_) => (),
+            Err(err) => return Err(err.into())
+        }
+
+        let json: RPCResponse = self
+            .client
+            .post(&self.url)
+            .body(payload.clone())
+            .headers(self.headers.clone())
+            .send()?
+            .json()?;
+
+        match json.error {
+            Some(err) => Err(err.message.into()),
+            None => match json.result {
+                Some(hash) => Ok(hash),
+                None => Err("No txhash returned".into())
+            }
         }
     }
 }
