@@ -5,12 +5,12 @@ use primitive_types::U256;
 use regex::Regex;
 use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Write;
 use std::string::String;
-use std::collections::HashMap;
 
 ///The `Provider` struct simply contains the RPC url, a `reqwest` client and default headers.
 ///## Example
@@ -226,7 +226,7 @@ pub struct TransactionInput {
     pub gas_price: Option<U256>,
     pub value: Option<U256>,
     pub data: Option<String>,
-    pub nonce: Option<U256>
+    pub nonce: Option<U256>,
 }
 
 #[derive(Debug, Serialize)]
@@ -237,7 +237,7 @@ pub struct CallInput {
     pub gas: Option<U256>,
     pub gas_price: Option<U256>,
     pub value: Option<U256>,
-    pub data: Option<String>
+    pub data: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1021,12 +1021,17 @@ impl Provider {
             Some(err) => Err(err.message.into()),
             None => match json.result {
                 Some(hash) => Ok(hash),
-                None => Err("No txhash returned".into())
-            }
+                None => Err("No txhash returned".into()),
+            },
         }
     }
 
-    pub fn call(&self, tx: CallInput, block_param: Option<DefaultBlockParam>, block_number: Option<U256>) -> Result<String, Box<dyn Error>> {
+    pub fn call(
+        &self,
+        tx: CallInput,
+        block_param: Option<DefaultBlockParam>,
+        block_number: Option<U256>,
+    ) -> Result<String, Box<dyn Error>> {
         let mut payload = String::new();
 
         let tx_json = serde_json::to_string(&tx)?;
@@ -1060,8 +1065,8 @@ impl Provider {
             Some(err) => Err(err.message.into()),
             None => match json.result {
                 Some(data) => Ok(data),
-                None => Err("No txhash returned".into())
-            }
+                None => Err("No txhash returned".into()),
+            },
         }
     }
 }

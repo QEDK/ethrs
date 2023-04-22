@@ -1,5 +1,5 @@
-use ethrs::provider::{TransactionInput, CallInput, DefaultBlockParam};
 use ethrs::provider::Provider;
+use ethrs::provider::{CallInput, DefaultBlockParam, TransactionInput};
 use ethrs::types::U256;
 
 use lazy_static::lazy_static;
@@ -363,7 +363,7 @@ fn test_send_transaction() -> Result<(), Box<dyn Error>> {
         gas_price: Some(U256::from(1)),
         value: Some(U256::from(1)),
         data: Some("0xFF".to_owned()),
-        nonce: Some(U256::from(0))
+        nonce: Some(U256::from(0)),
     };
     let tx_hash = PROVIDER.send_transaction(tx)?;
     Ok(())
@@ -377,7 +377,7 @@ fn test_call() -> Result<(), Box<dyn Error>> {
         gas: Some(U256::from(21016)),
         gas_price: Some(U256::from(1000)),
         value: Some(U256::from(1)),
-        data: Some("0xFF".to_owned())
+        data: Some("0xFF".to_owned()),
     };
     assert_eq!(PROVIDER.call(tx, None, None)?, "0x".to_owned());
     Ok(())
