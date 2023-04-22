@@ -1025,4 +1025,43 @@ impl Provider {
             }
         }
     }
+
+    pub fn call(&self, tx: CallInput, block_param: Option<DefaultBlockParam>, block_number: Option<U256>) -> Result<String, Box<dyn Error>> {
+        let mut payload = String::new();
+
+        let tx_json = serde_json::to_string(&tx)?;
+
+        payload.push_str("{\"method\":\"eth_call\",\"params\":[");
+        payload.push_str(&tx_json);
+        payload.push_str(",\"");
+        match block_param {
+            Some(DefaultBlockParam::EARLIEST) => payload.push_str("earliest"),
+            Some(DefaultBlockParam::FINALIZED) => payload.push_str("finalized"),
+            Some(DefaultBlockParam::SAFE) => payload.push_str("safe"),
+            Some(DefaultBlockParam::LATEST) => payload.push_str("latest"),
+            Some(DefaultBlockParam::PENDING) => payload.push_str("pending"),
+            None => match block_number {
+                Some(block) => payload.push_str(&format!("0x{block:x}")),
+                None => payload.push_str("latest"),
+            },
+        }
+        payload.push_str("\"],\"id\":1,\"jsonrpc\":\"2.0\"}");
+        print!("{}", payload);
+
+        let json: RPCResponse = self
+            .client
+            .post(&self.url)
+            .body(payload.clone())
+            .headers(self.headers.clone())
+            .send()?
+            .json()?;
+
+        match json.error {
+            Some(err) => Err(err.message.into()),
+            None => match json.result {
+                Some(data) => Ok(data),
+                None => Err("No txhash returned".into())
+            }
+        }
+    }
 }
