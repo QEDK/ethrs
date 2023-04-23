@@ -7,7 +7,6 @@ use reqwest;
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Write;
 use std::string::String;
@@ -44,15 +43,7 @@ pub struct RPCResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct RPCError {
-    code: i128,
     message: String,
-}
-
-///The `U256RPCResponse` struct allows for deserialization of generic RPC requests that may either return an error or a single hash as a result.
-#[derive(Deserialize, Debug)]
-pub struct U256RPCResponse {
-    error: Option<String>,
-    result: Option<U256>,
 }
 
 ///The `BlockRPCResponse` struct allows for deserialization of JSON-RPC requests that may either return an error or return a block as a result.
