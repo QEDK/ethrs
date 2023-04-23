@@ -217,7 +217,7 @@ pub struct TransactionReceipt {
     pub root: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionInput {
     pub from: String,
@@ -229,7 +229,7 @@ pub struct TransactionInput {
     pub nonce: Option<U256>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CallInput {
     pub from: Option<String>,
@@ -999,6 +999,29 @@ impl Provider {
         }
     }
 
+    ///The `send_transaction()` function takes a transaction input struct, sends it and attempts to return a deserialized transaction hash as `Ok(String)`. If no such transaction exists, returns `Ok(0x0...)` and returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::{Provider, TransactionInput};
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///  let tx = TransactionInput {
+    ///      from: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_owned(),
+    ///      to: Some("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_owned()),
+    ///      gas: Some(U256::from(21000)),
+    ///      gas_price: Some(U256::from(1)),
+    ///      value: Some(U256::from(1)),
+    ///      data: Some("0xFF".to_owned()),
+    ///      nonce: Some(U256::from(0)),
+    ///  };
+    ///  // the RPC call itself will fail because the account is not unlocked
+    ///  assert!(provider.send_transaction(tx).is_err());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn send_transaction(&self, tx: TransactionInput) -> Result<String, Box<dyn Error>> {
         let mut payload = String::new();
 
@@ -1030,7 +1053,7 @@ impl Provider {
         &self,
         tx: CallInput,
         block_param: Option<DefaultBlockParam>,
-        block_number: Option<U256>,
+        block_number: Option<u128>,
     ) -> Result<String, Box<dyn Error>> {
         let mut payload = String::new();
 
@@ -1051,7 +1074,6 @@ impl Provider {
             },
         }
         payload.push_str("\"],\"id\":1,\"jsonrpc\":\"2.0\"}");
-        print!("{}", payload);
 
         let json: RPCResponse = self
             .client
