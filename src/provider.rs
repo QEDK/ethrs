@@ -1049,6 +1049,27 @@ impl Provider {
         }
     }
 
+    ///The `call()` function takes a call input struct, sends it and attempts to return deserialized return data as `Ok(String)`. If no data is returned or a transaction is sent to an EOA, returns `Ok(0x0...)` and returns an `Err()` on JSON-RPC errors.
+    ///## Example
+    ///```rust
+    ///use ethrs::provider::{Provider, CallInput};
+    ///use ethrs::types::U256;
+    ///use std::error::Error;
+    ///
+    ///fn main() -> Result<(), Box<dyn Error>> {
+    ///  let provider = Provider::new("https://rpc.sepolia.org");
+    ///  let tx = CallInput {
+    ///      from: None,
+    ///      to: "0xfd6470334498a1f26db0c5915b026670499b2632".to_owned(),
+    ///      gas: None,
+    ///      gas_price: None,
+    ///      value: None,
+    ///      data: Some("0xd800df5c".to_owned()),
+    ///  };
+    ///  assert_eq!(provider.call(tx, None, None)?, "0x00000000000000000000000000000000000000000000000000000000000003e8".to_owned());
+    ///  Ok(())
+    ///}
+    ///```
     pub fn call(
         &self,
         tx: CallInput,
@@ -1087,7 +1108,7 @@ impl Provider {
             Some(err) => Err(err.message.into()),
             None => match json.result {
                 Some(data) => Ok(data),
-                None => Err("No txhash returned".into()),
+                None => Err("No data returned".into()),
             },
         }
     }

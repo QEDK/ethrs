@@ -11,7 +11,7 @@ lazy_static! {
 
 #[test]
 fn test_block_number() -> Result<(), Box<dyn Error>> {
-    assert!(PROVIDER.block_number().unwrap() > 2893700);
+    assert!(PROVIDER.block_number().unwrap() > 3347000);
     Ok(())
 }
 
@@ -378,14 +378,29 @@ fn test_call() -> Result<(), Box<dyn Error>> {
         gas: None,
         gas_price: None,
         value: None,
-        data: None
+        data: None,
     };
     assert_eq!(PROVIDER.call(tx.clone(), None, None)?, "0x".to_owned());
-    assert_eq!(PROVIDER.call(tx.clone(), Some(DefaultBlockParam::PENDING), None)?, "0x".to_owned());
-    assert_eq!(PROVIDER.call(tx.clone(), Some(DefaultBlockParam::SAFE), None)?, "0x".to_owned());
-    assert_eq!(PROVIDER.call(tx.clone(), Some(DefaultBlockParam::FINALIZED), None)?, "0x".to_owned());
-    assert_eq!(PROVIDER.call(tx.clone(), Some(DefaultBlockParam::EARLIEST), None)?, "0x".to_owned());
-    assert_eq!(PROVIDER.call(tx.clone(), None, Some(3347700))?, "0x".to_owned());
+    assert_eq!(
+        PROVIDER.call(tx.clone(), Some(DefaultBlockParam::PENDING), None)?,
+        "0x".to_owned()
+    );
+    assert_eq!(
+        PROVIDER.call(tx.clone(), Some(DefaultBlockParam::SAFE), None)?,
+        "0x".to_owned()
+    );
+    assert_eq!(
+        PROVIDER.call(tx.clone(), Some(DefaultBlockParam::FINALIZED), None)?,
+        "0x".to_owned()
+    );
+    assert_eq!(
+        PROVIDER.call(tx.clone(), Some(DefaultBlockParam::EARLIEST), None)?,
+        "0x".to_owned()
+    );
+    assert_eq!(
+        PROVIDER.call(tx.clone(), None, Some(PROVIDER.block_number().unwrap() - 1))?,
+        "0x".to_owned()
+    );
     tx = CallInput {
         from: None,
         to: "0xdeceabcc2896ac5a6c4c45703087844c67ecf0a0".to_owned(),
@@ -394,6 +409,9 @@ fn test_call() -> Result<(), Box<dyn Error>> {
         value: None,
         data: Some("0xd800df5c".to_owned()),
     };
-    assert_eq!(PROVIDER.call(tx, None, None)?, "0x00000000000000000000000000000000000000000000000000000000000003e8".to_owned());
+    assert_eq!(
+        PROVIDER.call(tx, None, None)?,
+        "0x00000000000000000000000000000000000000000000000000000000000003e8".to_owned()
+    );
     Ok(())
 }
